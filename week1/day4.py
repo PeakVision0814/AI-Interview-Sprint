@@ -30,3 +30,8 @@ person1.greet()
 
 # 调用 person2 对象的 greet 方法
 person2.greet()
+
+# --- 4. 访问对象的属性 ---
+print("\n--- 开始访问属性 ---")
+print(f"第一个人的名字是：{person1.name}")
+print(f"第二个人的年龄是：{person2.age}")
