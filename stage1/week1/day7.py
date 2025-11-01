@@ -62,7 +62,7 @@ print(f"\n不同性别的平均存活率：\n{survival_rate_sex}")
 survival_rate_Pclass = df.groupby('Pclass')['Survived'].mean()
 print(f"\n不同船舱等级的平均存活率：\n{survival_rate_Pclass}")
 
-survival_rate_pclass_sex = df.groupby(['Pclass', 'Sex'])['Survived'].mean()
+survival_rate_pclass_sex = ((df.groupby(['Pclass', 'Sex'])['Survived'].mean()) * 100).round(2).astype(str) + '%'
 print(f"\n不同性别 和 不同船舱等级 组合下的平均存活率：\n{survival_rate_pclass_sex}")
 
 print("从分类分析可知，一等舱的女性存活率最高")
