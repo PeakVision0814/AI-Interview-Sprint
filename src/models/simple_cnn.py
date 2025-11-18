@@ -29,10 +29,10 @@ class SimpleCNN(nn.Module):
     def forward(self, x):
         # 卷积块1
         x = self.conv1(x)   
-        print(f"1. 经过 Conv1: {x.shape}") # 这里会显示 [B, 16, 28, 28]
+        # print(f"1. 经过 Conv1: {x.shape}") # 这里会显示 [B, 16, 28, 28]
         x = F.relu(x)
         x = self.pool1(x)
-        print(f"2. 经过 Pool1: {x.shape}") # 这里会显示 [B, 16, 14, 14]
+        # print(f"2. 经过 Pool1: {x.shape}") # 这里会显示 [B, 16, 14, 14]
 
         # 卷积块2
         x = self.conv2(x)
