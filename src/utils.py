@@ -32,6 +32,7 @@ def get_logger(log_file='training.log'):
     
     # 注意：这里依然不要加 StreamHandler (控制台)，全权交给 tqdm 处理
 
+    logger.addHandler(file_handler)
     return logger
 def get_data_loaders(batch_size=64, data_root='../../data'):
     # 定义变换：转Tensor + 归一化
