@@ -1,3 +1,4 @@
+# src/engine.py
 import torch
 import torch.nn as nn
 from tqdm.auto import tqdm 
@@ -11,7 +12,7 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=100, logge
     
     # 1. 创建进度条
     # leave=False: 跑完一轮后进度条消失，保持屏幕清爽
-    pbar = tqdm(train_loader, desc=f'Train Epoch {epoch}', leave=False)
+    pbar = tqdm(train_loader, desc=f'Train Epoch {epoch}', leave=True)
     
     for batch_idx, (data, target) in enumerate(pbar):
         data, target = data.to(device), target.to(device)
@@ -34,7 +35,7 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=100, logge
                 logger.info(msg)
             
             # 写屏幕 (使用 pbar.write，它会在进度条上方插入一行，不会打断进度条)
-            pbar.write(msg)
+            # pbar.write(msg)
 
 def evaluate(model, device, test_loader, logger=None):
     """

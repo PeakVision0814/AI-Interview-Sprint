@@ -1,3 +1,4 @@
+# src/utils.py
 import os
 import torch
 import sys
@@ -21,7 +22,7 @@ def get_logger(log_file='training.log'):
     logger.setLevel(logging.INFO)
 
     # 3. 创建文件处理器 (FileHandler) -> 写文件
-    file_handler = logging.FileHandler(log_file, mode='w') 
+    file_handler = logging.FileHandler(log_file, mode='a') 
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
 
     # 4. 添加到 logger
