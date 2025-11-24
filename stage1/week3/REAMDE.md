@@ -105,9 +105,3 @@
         * “`loss.backward()` 和 `optimizer.step()` 分别做了什么？” (W2 知识)
         * “为什么在评估时要使用 `with torch.no_grad()`？” (W3D4 知识)
     3.  **预习 P2**：(如果时间允许) 开始阅读 "The Illustrated Transformer"，对 "Attention 机制"有一个初步印象。
-
----
-
-我们今天将从 **W3D1 (Day 15)** 开始。
-
-请问你准备好开始学习 CNN 的核心理论 (`nn.Conv2d`) 并构建你的第一个 CNN 模型了吗？
