@@ -124,3 +124,73 @@ class MultiHeadAttention(nn.Module):
         output = self.w_o(attention_output)
         
         return output, attention_weights
+
+class PositionwiseFeedForward(nn.Module):
+    def __init__(self, d_model, d_ff, dropout=0.1):
+        """
+        d_model：模型输入维度（512）
+        d_ff：隐藏层的维度（通常是4倍d_model=2048）
+        """
+        super(PositionwiseFeedForward,self).__init__()
+        # 第一层：线性变换 + ReLU
+        self.w_1 = nn.Linear(d_model, d_ff)
+        # 第二层：线性变换
+        self.w_2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.ReLU() # 或者 GELU (BERT常用)
+
+    def forward(self, x):
+        # x: [Batch, Seq, d_model]
+        
+        # 1. 升维: 512 -> 2048
+        # 公式: ReLU(xW1 + b1)W2 + b2
+        inter = self.activation(self.w_1(x))
+        inter = self.dropout(inter)
+        
+        # 2. 降维: 2048 -> 512
+        output = self.w_2(inter)
+        
+        return output
+
+class EncoderLayer(nn.Module):
+    def __init__(self, d_model, n_heads, d_ff, dropout=0.1):
+        super(EncoderLayer, self).__init__()
+
+        # 1. Self-Attention 模块
+        self.self_attn = MultiHeadAttention(d_model, n_heads)
+
+        # 2. Feed-Forward 模块
+        self.feed_forward = PositionwiseFeedForward(d_model, d_ff, dropout)
+
+        # 3. 两个Add & Norm模块
+        # LayerNorm的参数是特征维度d_model
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        
+        # 4. Dropout (防止过拟合的神器)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, mask=None):
+        """
+        x: [Batch, Seq, d_model]
+        mask: [Batch, 1, 1, Seq] (用于遮挡 Pad)
+        """
+        # --- 子层1：Multi-Head Attention ---
+        # 1. 计算Attention
+        attn_output, _ = self.self_attn(x, x, x, mask)
+
+        # 2. Add & Norm
+        # 残差连接: x + Dropout(Sublayer(x))
+        # 这里的顺序是 Post-Norm: Norm(x + Sublayer(x)) -> 原始论文写法
+        # 现代很多模型(GPT)用 Pre-Norm: x + Sublayer(Norm(x))
+        # 我们按经典的来：
+        x = self.norm1(x + self.dropout(attn_output))
+
+        # --- 子层 2: Feed-Forward ---
+        # 1. 计算 FFN
+        ff_output = self.feed_forward(x)
+        
+        # 2. Add & Norm
+        x = self.norm2(x + self.dropout(ff_output))
+        
+        return x
