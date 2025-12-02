@@ -194,3 +194,115 @@ class EncoderLayer(nn.Module):
         x = self.norm2(x + self.dropout(ff_output))
         
         return x
+    
+def get_clones(module, N):
+    """
+    一个辅助函数：克隆 N 个相同的层
+    """
+    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+    
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, vocab_size, d_model, n_heads, d_ff, N=6, dropout=0.1):
+        """
+        Args:
+            vocab_size: 词表大小 (比如 30000)
+            d_model: 向量维度 (512)
+            n_heads: 多头数 (8)
+            d_ff: FFN隐藏层维度 (2048)
+            N: 堆叠层数 (通常是 6 或 12)
+        """
+        super(TransformerEncoder, self).__init__()
+        
+        self.d_model = d_model
+        self.N = N
+        
+        # 1. 词嵌入层 (Word Embedding)
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        
+        # 2. 位置编码 (Positional Encoding)
+        self.pe = PositionalEncoding(d_model)
+        
+        # 3. 堆叠 N 层 EncoderLayer
+        # 先实例化一个标准层
+        base_layer = EncoderLayer(d_model, n_heads, d_ff, dropout)
+        # 然后克隆 N 份
+        self.layers = get_clones(base_layer, N)
+        
+        # 4. 最终的规范化层 (可选，但推荐)
+        self.norm = nn.LayerNorm(d_model)
+        
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, src, mask=None):
+        """
+        src: [Batch, Seq_Len] (注意：这里输入的是整数索引，不是向量了)
+        mask: [Batch, 1, 1, Seq_Len]
+        """
+        # 1. Embedding
+        # [Batch, Seq] -> [Batch, Seq, Dim]
+        x = self.embedding(src)
+        
+        # 2. Scale Embedding (这是一个 trick)
+        # 论文中提到 embedding 需要乘以 sqrt(d_model)，让数值变大一点，
+        # 以便和 Positional Encoding (在 -1 到 1 之间) 相加时，
+        # 原始语义信息不会被位置信息淹没。
+        x = x * math.sqrt(self.d_model)
+        
+        # 3. Add Position Encoding
+        x = self.pe(x)
+        x = self.dropout(x)
+        
+        # 4. Pass through N layers
+        for layer in self.layers:
+            x = layer(x, mask)
+            
+        # 5. Final Norm
+        return self.norm(x)
+    
+class PatchEmbedding(nn.Module):
+    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
+        """
+        Args:
+            img_size：图片分辨率（224）
+            patch_size：每个小方块的大小（16）
+            in_chans：输入通道数（RGB图片是3）
+            embed_dim：转换后的特征维度（768, 和BERT-Base一样）
+        """
+        super().__init__()
+        self.img_size=img_size
+        self.patch_size = patch_size
+
+        # 计算 Patch 的总数量
+        # (224 // 16) * (224 // 16) = 14 * 14 = 196
+        self.num_patches = (img_size // patch_size) * (img_size // patch_size)
+
+        # --- 核心魔法: 使用 Conv2d 做切片 ---
+        # kernel_size=16, stride=16
+        # 这意味着卷积核一次看 16x16 的区域，然后跳过 16 个像素看下一个
+        # 输出通道 embed_dim 就是要把这个 Patch 压缩成的向量长度
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+
+    def forward(self, x):
+        """
+        x: [Batch, Channels, Height, Width] (例如：[32, 3, 224, 224])
+        """
+        # 1. 卷积投影
+        # input: [B, 3, 224, 224]
+        # output: [B, 768, 14, 14]
+        x = self.proj(x)
+
+        # 2. 展平 (Flatten)
+        # 我们需要序列，不需要 grid
+        # 从维度 2 (H) 开始展平
+        # output: [B, 768, 196] (196 = 14*14)
+        x = x.flatten(2)
+
+        # 3. 维度交换（Transpose）
+        # Transformer 需要的输入是 [Batch, Seq_Len, Dim]
+        # 目前是 [B, Dim, Seq_Len]，所以要交换 Dim 和 Seq_Len
+        # output: [B, 196, 768]
+        x = x.transpose(1, 2)
+
+        return x
