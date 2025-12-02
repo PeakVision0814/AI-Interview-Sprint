@@ -1,6 +1,7 @@
 # src/models/transformer_components.py
 import math
 import torch
+import copy
 import torch.nn as nn
 import torch.nn.functional as F
 
