@@ -1,8 +1,10 @@
 # src/utils.py
 import os
-import torch
 import sys
+import torch
+import random
 import logging
+import numpy as np
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
@@ -11,26 +13,49 @@ def get_logger(log_file='training.log'):
     """
     创建一个 logger，既打印到终端，又保存到文件
     """
-    # 1. 使用具体名字，隔离 Jupyter 默认 logger
-    logger = logging.getLogger('training_logger') 
-    
-    # 2. 禁止向上传播，防止 Jupyter 界面重复打印
-    logger.propagate = False 
-    
+    logger = logging.getLogger('project_logger') 
     logger.setLevel(logging.INFO)
+    logger.propagate = False  # 防止 Jupyter 重复打印
 
-    # 3. 创建文件处理器
-    file_handler = logging.FileHandler(log_file, mode='a') 
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+    # 格式设置
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 
-    # 4. 【关键修正】只在没有 handler 时添加，且只添加一次
+    # 只有在没有 handler 时才添加，防止重复添加导致一条日志打印多次
     if not logger.handlers:
+        # 1. 文件输出 (FileHandler)
+        file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
-    
-    # 删除原代码中这里多余的 logger.addHandler(file_handler)
+
+        # 2. 控制台输出 (StreamHandler) - 修复原代码无法在终端显示的问题
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
     
     return logger
 
+def get_device():
+    """
+    自动获取当前设备（CUDA / MPS / CPU）
+    """
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    elif torch.backends.mps.is_available():   # 适配 Mac /M1/M2/M3
+        return torch.device("mps")
+    else:
+        return torch.device("cpu")
+
+def seed_everything(seed=42):
+    """
+    固定所有随机种子，确保实验可复现 (Reproducibility)
+    """
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 def get_data_loaders(batch_size=64, data_root='../../data'):
     # 定义变换：转Tensor + 归一化
