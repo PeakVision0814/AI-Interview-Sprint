@@ -23,25 +23,46 @@ class BertClassifier(nn.Module):
         # (可选) Dropout 层，防止过拟合
         self.dropout = nn.Dropout(0.1)
 
-    def forward(self, input_ids, attention_mask, token_type_ids=None):
-        """
-        前向传播
-        """
-        # 1. BERT 编码
-        # output[0]: last_hidden_state (Batch, Seq, 768)
-        # output[1]: pooler_output (Batch, 768) -> 这是 CLS 经过加工后的向量，适合做分类
+    # def forward(self, input_ids, attention_mask, token_type_ids=None):
+    #     """
+    #     前向传播
+    #     """
+    #     # 1. BERT 编码
+    #     # output[0]: last_hidden_state (Batch, Seq, 768)
+    #     # output[1]: pooler_output (Batch, 768) -> 这是 CLS 经过加工后的向量，适合做分类
+    #     outputs = self.bert(
+    #         input_ids=input_ids,
+    #         attention_mask=attention_mask,
+    #         token_type_ids=token_type_ids
+    #     )
+        
+    #     pooler_output = outputs.pooler_output
+        
+    #     # 2. 经过 Dropout
+    #     pooler_output = self.dropout(pooler_output)
+        
+    #     # 3. 经过线性层，得到 Logits
+    #     logits = self.classifier(pooler_output)
+        
+    #     return logits
+    
+    def forward(self, input_ids, attention_mask, labels=None, token_type_ids=None): # 把 token_type_ids 加回来，虽然有时候不用，但为了兼容性最好加上
         outputs = self.bert(
-            input_ids=input_ids,
+            input_ids=input_ids, 
             attention_mask=attention_mask,
             token_type_ids=token_type_ids
         )
-        
         pooler_output = outputs.pooler_output
-        
-        # 2. 经过 Dropout
         pooler_output = self.dropout(pooler_output)
-        
-        # 3. 经过线性层，得到 Logits
         logits = self.classifier(pooler_output)
+        
+        loss = None
+        if labels is not None:
+            # view(-1) 将 labels 展平成一维向量 [batch_size]，防止出现 [batch_size, 1] 的情况
+            # 这行代码是修复这个报错的核心！
+            loss_fct = nn.CrossEntropyLoss()
+            loss = loss_fct(logits.view(-1, self.classifier.out_features), labels.view(-1))
+            
+            return (loss, logits)
         
         return logits

@@ -26,6 +26,7 @@ class IntentDataset(Dataset):
             add_special_tokens=True,
             max_length=self.max_len,
             padding='max_length', # 注意：这里暂时用 max_length，后面会讲动态 padding
+            # paddomg=False
             truncation=True,
             return_attention_mask=True,
             return_tensors='pt',
