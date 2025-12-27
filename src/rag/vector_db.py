@@ -1,6 +1,11 @@
 import chromadb
 from typing import List, Dict, Any
-from embedding import EmbeddingModel
+import sys
+import os
+sys.path.append(os.path.abspath("../../"))
+
+
+from src.rag.embedding import EmbeddingModel
 
 # 再次定义适配器 (为了保持 vector_db.py 的独立性)
 class MyCustomEmbeddingFunction(chromadb.EmbeddingFunction):

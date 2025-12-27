@@ -1,3 +1,4 @@
+# src/rag/ingest.py
 import os
 import sys
 # 路径处理：确保能导入 src 下的模块
@@ -18,7 +19,7 @@ def load_and_process_file(file_path: str):
         print(f"Error reading file: {e}")
         return [], []
     
-    # 简单的元数据提取 (实际工程中可能需要解析文件名或正则提取章节号)
+    # 简单的元数据提取
     file_name = os.path.basename(file_path)
     
     """
@@ -43,13 +44,21 @@ def load_and_process_file(file_path: str):
 def main():
     # 配置
     DATA_DIR = "data"
-    DB_PATH = "chroma_db_data" # 注意这里要和 Day 3 保持一致
+    
+    # --- 修改重点 ---
+    # 使用 os.path.join 将数据库路径拼接在 data 目录下
+    # 结果类似于: "data/chroma_db_data"
+    DB_PATH = os.path.join(DATA_DIR, "chroma_db_data") 
+    
+    # 打印一下路径确认
+    print(f"📂 Database Path set to: {os.path.abspath(DB_PATH)}")
+    # ----------------
     
     # 初始化组件
     print("🚀 Starting ETL Pipeline...")
     
-    # 初始化 DB (Day 3 的组件)
-    # 注意：如果目录存在，它会加载旧数据；如果不存在，会新建
+    # 初始化 DB 
+    # 注意：Chroma 会自动在指定路径创建文件夹
     vector_db = VectorDB(persist_path=DB_PATH)
     
     # 遍历 data 目录下的所有 txt 文件
@@ -73,7 +82,7 @@ def main():
     results = vector_db.search("故意伤害致死怎么判？", top_k=1)
     for res in results:
         print(f"Answer found in [{res['metadata']['source']}]:")
-        print(f"Content: {res['text'][:50]}...") # 只打印前50个字
+        print(f"Content: {res['text'][:50]}...") 
         print(f"Distance: {res['distance']:.4f}")
 
 if __name__ == "__main__":
