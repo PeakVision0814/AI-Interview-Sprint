@@ -1,42 +1,61 @@
 # src/llm/tools.py
 import json
 
-def get_current_weather(location, unit="celsius"):
-    """
-    模拟查询天气的工具函数。
-    在真实项目中，这里会调用 OpenWeatherMap 或高德地图 API。
-    """
-    # 模拟数据
-    if "hangzhou" in location.lower() or "杭州" in location:
-        return json.dumps({"location": "Hangzhou", "temperature": "5", "unit": unit, "condition": "Rainy"})
-    elif "beijing" in location.lower() or "北京" in location:
-        return json.dumps({"location": "Beijing", "temperature": "-2", "unit": unit, "condition": "Sunny"})
-    else:
-        return json.dumps({"location": location, "temperature": "unknown"})
+# 尝试导入你之前写的 RAG 组件
+# 如果之前的代码路径不同，请调整 import
+try:
+    # 假设你在 src.rag.vector_db 里有个 query_vector_db 函数
+    # from src.rag.vector_db import query_vector_db 
+    pass 
+except ImportError:
+    pass
 
-# 定义工具列表供 LLM 使用
+def search_knowledge_base(query: str) -> str:
+    """
+    根据用户的查询，在本地向量知识库(Vector DB)中检索相关文档。
+    """
+    print(f"🔍 [Tool]: 正在知识库中检索: {query} ...")
+    
+    # --- 这里是连接真实 RAG 的接口 ---
+    # 真实场景：results = query_vector_db(query, top_k=3)
+    # 真实场景：return json.dumps(results)
+    
+    # --- 模拟数据 (Mock) ---
+    # 为了今天先跑通 Agent 逻辑，我们先返回模拟数据
+    mock_db = {
+        "transformer": "Transformer 是一种基于自注意力机制(Self-Attention)的深度学习模型，由 Google 在 2017 年提出。",
+        "rag": "RAG (Retrieval-Augmented Generation) 是一种结合了检索和生成的架构，用于解决 LLM 的幻觉问题。",
+        "resnet": "ResNet (残差网络) 通过引入 Skip Connection 解决了深层网络难以训练的问题。"
+    }
+    
+    for key, value in mock_db.items():
+        if key in query.lower():
+            return json.dumps({"status": "success", "content": value})
+            
+    return json.dumps({"status": "empty", "content": "知识库中未找到相关内容，请尝试换个关键词。"})
+
+# 定义工具 Schema
 TOOLS_SCHEMA = [
     {
         "type": "function",
         "function": {
-            "name": "get_current_weather",
-            "description": "获取指定城市的当前天气情况",
+            "name": "search_knowledge_base",
+            "description": "当用户询问具体的技术概念、定义或需要查阅内部文档时调用此工具。不要用于日常闲聊。",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "location": {
+                    "query": {
                         "type": "string",
-                        "description": "城市名称，如 Beijing, Hangzhou",
+                        "description": "用于检索的关键词或问题，例如 'Transformer原理' ",
                     },
-                    "unit": {"type": "string", "enum": ["celsius", "fahrenheit"]},
                 },
-                "required": ["location"],
+                "required": ["query"],
             },
         },
     }
 ]
 
-# 建立函数名到实际函数的映射，方便后续调用
+# 函数映射表
 AVAILABLE_FUNCTIONS = {
-    "get_current_weather": get_current_weather,
+    "search_knowledge_base": search_knowledge_base,
 }
